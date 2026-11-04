@@ -350,6 +350,19 @@ class TabInfo extends SaveableEntry {
     this.save();
   }
 
+  // Patched: record the transport protocol observed by content.js for a
+  // domain. Skips unknown domains (webRequest will create the row, and the
+  // observer keeps streaming) and empty values (cache hits have none).
+  setProto(domain, proto) {
+    const d = this.domains[domain];
+    if (!d || !proto || d.proto == proto) {
+      return;
+    }
+    d.proto = proto;
+    this.pushOne(domain);
+    this.save();
+  }
+
   updateIcon() {
     if (!(this.#state == TAB_ALIVE)) {
       return;
@@ -422,11 +435,11 @@ class TabInfo extends SaveableEntry {
     popups.pushOne(this.id(), this.getTuple(domain));
   }
 
-  // Build some [domain, addr, version, flags] tuples, for a popup.
+  // Build some [domain, addr, version, flags, proto] tuples, for a popup.
   getTuples() {
     const mainDomain = this.mainDomain || "(no domain)";
     const domains = Object.keys(this.domains).sort();
-    const mainTuple = [mainDomain, "(no address)", "?", FLAG_UNCACHED | FLAG_NOTWORKER];
+    const mainTuple = [mainDomain, "(no address)", "?", FLAG_UNCACHED | FLAG_NOTWORKER, ""];
     const tuples = [mainTuple];
     for (const domain of domains) {
       const d = this.domains[domain];
@@ -434,21 +447,22 @@ class TabInfo extends SaveableEntry {
         mainTuple[1] = d.addr;
         mainTuple[2] = d.addrVersion();
         mainTuple[3] = d.flags;
+        mainTuple[4] = d.proto;
       } else {
-        tuples.push([domain, d.addr, d.addrVersion(), d.flags]);
+        tuples.push([domain, d.addr, d.addrVersion(), d.flags, d.proto]);
       }
     }
     return tuples;
   }
 
-  // Build [domain, addr, version, flags] tuple, for a popup.
+  // Build [domain, addr, version, flags, proto] tuple, for a popup.
   getTuple(domain) {
     const d = this.domains[domain];
     if (!d) {
       // Perhaps this.domains was cleared during the request's lifetime.
       return null;
     }
-    return [domain, d.addr, d.addrVersion(), d.flags];
+    return [domain, d.addr, d.addrVersion(), d.flags, d.proto];
   }
 }
 
@@ -457,6 +471,7 @@ class DomainInfo {
   domain;
   addr;
   flags;
+  proto = "";  // Patched: nextHopProtocol from content.js ("h3", "h2", ...).
 
   count = 0;  // count of active requests
   inhibitZero = false;
@@ -470,12 +485,14 @@ class DomainInfo {
 
   // count and FLAG_CONNECTED will be computed from requestMap.
   toJSON() {
-    return [this.addr, this.flags & ~FLAG_CONNECTED];
+    return [this.addr, this.flags & ~FLAG_CONNECTED, this.proto];
   }
 
   static fromJSON(tabInfo, domain, json) {
-    const [addr, flags] = json;
-    return new DomainInfo(tabInfo, domain, addr, flags);
+    const [addr, flags, proto = ""] = json;  // proto absent in pre-patch saves.
+    const d = new DomainInfo(tabInfo, domain, addr, flags);
+    d.proto = proto;
+    return d;
   }
 
   // In theory, we should be using a full-blown subnet parser/matcher here,
@@ -713,6 +730,22 @@ chrome.runtime.onConnect.addListener(async (port) => {
   port.onDisconnect.addListener(() => {
     popups.detachPort(port);
   });
+});
+
+// Patched: accept nextHopProtocol reports from content.js (passive read of
+// the page's own Resource Timing) and store them per domain.
+chrome.runtime.onMessage.addListener(async (msg, sender) => {
+  await storageReady;
+  if (msg?.cmd != "proto" || !sender.tab || !msg.entries) {
+    return;
+  }
+  const tabInfo = tabMap[sender.tab.id];
+  if (!tabInfo) {
+    return;
+  }
+  for (const [domain, proto] of Object.entries(msg.entries)) {
+    tabInfo.setProto(domain, proto);
+  }
 });
 
 // Refresh icons after chrome.runtime.reload()

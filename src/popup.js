@@ -277,6 +277,7 @@ function makeRow(isFirst, tuple) {
   const addr = tuple[1];
   const version = tuple[2];
   const flags = tuple[3];
+  const proto = tuple[4] || "";  // Patched: nextHopProtocol from content.js.
 
   const tr = document.createElement("tr");
   if (isFirst) {
@@ -417,6 +418,18 @@ function makeRow(isFirst, tuple) {
   if (ptr && hostDiv) addrTd.appendChild(hostDiv);
   if (origin && originDiv) addrTd.appendChild(originDiv);
 
+  // Build the "Protocol" column (patched): h3 runs over QUIC/UDP, every
+  // other network protocol runs over TCP. Empty while unobserved.
+  const protoTd = document.createElement("td");
+  protoTd.className = "protoTd";
+  if (proto == "h3") {
+    protoTd.appendChild(document.createTextNode("UDP"));
+    protoTd.title = "h3 (QUIC over UDP)";
+  } else if (proto) {
+    protoTd.appendChild(document.createTextNode("TCP"));
+    protoTd.title = `${proto} over TCP`;
+  }
+
   const utilsTd = document.createElement("td");
 
   // Perhaps these buttons should be icons? Or something else?
@@ -453,6 +466,7 @@ function makeRow(isFirst, tuple) {
   tr._domain = domain;
   tr.appendChild(domainTd);
   tr.appendChild(addrTd);
+  tr.appendChild(protoTd);
   tr.appendChild(cacheTd);
   tr.appendChild(utilsTd);
   return tr;
