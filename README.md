@@ -20,3 +20,9 @@ Coming Soon
 ## Safari?
 
 IPvFoo cannot be [ported to Safari](https://github.com/pmarks-net/ipvfoo/issues/39) because the `webRequest` API does not report IP addresses.  In theory, a Safari extension could do its own DNS lookups over HTTPS, but such behavior is beyond the scope of IPvFoo.
+
+---
+
+## 汉化 + 协议列补丁（本 fork）
+
+本分支基于官方 IPvFooBarBaz，在原版基础上增加：界面汉化；弹窗新增 TCP / UDP 协议列（被动读取页面 Resource Timing 的 nextHopProtocol：h3 为 UDP/QUIC，其余为 TCP，零新增连接）。

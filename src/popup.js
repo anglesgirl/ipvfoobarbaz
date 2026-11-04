@@ -259,16 +259,16 @@ function makeSslImg(flags) {
     case FLAG_SSL | FLAG_NOSSL:
       return makeImg(
           "gray_schrodingers_lock.png",
-          "Mixture of HTTPS and non-HTTPS connections.");
+          "HTTPS 与非 HTTPS 连接混合。");
     case FLAG_SSL:
       return makeImg(
           "gray_lock.png",
-          "Connection uses HTTPS.\n" +
-          "Warning: IPvFoo does not verify the integrity of encryption.");
+          "连接使用 HTTPS。\n" +
+          "注意：IPvFoo 不验证加密的完整性。");
     default:
       return makeImg(
           "gray_unlock.png",
-          "Connection does not use HTTPS.");
+          "连接不使用 HTTPS。");
   }
 }
 
@@ -338,7 +338,7 @@ function makeRow(isFirst, tuple) {
 
   if (ptr) {
     if (typeof window.dnsCache.hosts[ptr] === "undefined") {
-      hostSpan.textContent = "resolving...";
+      hostSpan.textContent = "解析中…";
       fetch("https://dns.google/resolve?name=" + ptr + "&type=PTR").then(res => res.json()).then(res => {
         hostSpan.textContent = '';
         let hasFoundHostname = false;
@@ -372,7 +372,7 @@ function makeRow(isFirst, tuple) {
 
   if (origin) {
     if (typeof window.dnsCache.asns[origin] === "undefined") {
-      originSpan.textContent = "fetching...";
+      originSpan.textContent = "获取中…";
       fetch("https://dns.google/resolve?name=" + origin + "&type=TXT").then(res => res.json()).then(async res => {
         if (res.Answer && res.Answer[0] && res.Answer[0].data) {
           window.dnsCache.asns[origin] = "AS" + res.Answer[0].data.split('|')[0].slice(0, -1);
@@ -424,10 +424,10 @@ function makeRow(isFirst, tuple) {
   protoTd.className = "protoTd";
   if (proto == "h3") {
     protoTd.appendChild(document.createTextNode("UDP"));
-    protoTd.title = "h3 (QUIC over UDP)";
+    protoTd.title = "h3（QUIC，UDP）";
   } else if (proto) {
     protoTd.appendChild(document.createTextNode("TCP"));
-    protoTd.title = `${proto} over TCP`;
+    protoTd.title = `${proto}（TCP）`;
   }
 
   const utilsTd = document.createElement("td");
@@ -449,15 +449,15 @@ function makeRow(isFirst, tuple) {
   cacheTd.className = `cacheTd${connectedClass}`;
   if (flags & FLAG_WEBSOCKET) {
     cacheTd.appendChild(
-        makeImg("websocket.png", "WebSocket handshake; connection may still be active."));
+        makeImg("websocket.png", "WebSocket 握手；连接可能仍在活动。"));
     cacheTd.style.paddingLeft = '6pt';
   } else if (!(flags & FLAG_NOTWORKER)) {
     cacheTd.appendChild(
-        makeImg("serviceworker.png", "Service Worker request; possibly from a different tab."));
+        makeImg("serviceworker.png", "Service Worker 请求；可能来自其他标签页。"));
     cacheTd.style.paddingLeft = '6pt';
   } else if (!(flags & FLAG_UNCACHED)) {
     cacheTd.appendChild(
-        makeImg("cached_arrow.png", "Data from cached requests only."));
+        makeImg("cached_arrow.png", "仅来自缓存请求的数据。"));
     cacheTd.style.paddingLeft = '6pt';
   } else {
     cacheTd.style.paddingLeft = '0';
