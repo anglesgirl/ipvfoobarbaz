@@ -419,7 +419,9 @@ function makeRow(isFirst, tuple) {
   if (origin && originDiv) addrTd.appendChild(originDiv);
 
   // Build the "Protocol" column (patched): h3 runs over QUIC/UDP, every
-  // other network protocol runs over TCP. Empty while unobserved.
+  // other network protocol runs over TCP. A domain whose requests were
+  // all served from cache (no FLAG_UNCACHED) shows "缓存" instead of
+  // staying blank; anything else stays blank while unobserved.
   const protoTd = document.createElement("td");
   protoTd.className = "protoTd";
   if (proto == "h3") {
@@ -428,6 +430,9 @@ function makeRow(isFirst, tuple) {
   } else if (proto) {
     protoTd.appendChild(document.createTextNode("TCP"));
     protoTd.title = `${proto}（TCP）`;
+  } else if (!(flags & FLAG_UNCACHED)) {
+    protoTd.appendChild(document.createTextNode("缓存"));
+    protoTd.title = "缓存资源，未产生新连接";
   }
 
   const utilsTd = document.createElement("td");
